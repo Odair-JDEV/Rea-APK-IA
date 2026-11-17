@@ -25,6 +25,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from . import ui as _ui
+
 HOME_DIR = Path(os.environ.get("READROID_HOME") or (Path.home() / ".readroid"))
 KEY_FILE = HOME_DIR / "openrouter.key"
 GATEWAY_KEY_FILE = HOME_DIR / "gateway.key"
@@ -1402,7 +1404,6 @@ def _menu_loop(ui) -> None:
         provider = load_provider()
         status = (f"gateway/{load_model()}" if provider == PROVIDER_GATEWAY else
                   f"openrouter/{load_model()}" if provider == PROVIDER_OPENCODE else "binário global do Termux")
-<<<<<<< HEAD
         print()
         print(_ui.BOLD + _ui.YELLOW + "▸ INTELIGÊNCIA ARTIFICIAL" + _ui.RESET)
         print(_ui.GRAY + f" Provedor: {PROVIDER_LABELS[provider]} · {status}" + _ui.RESET)
@@ -1427,26 +1428,6 @@ def _menu_loop(ui) -> None:
         print(" " + _ui.CYAN + "P " + _ui.RESET + "— Trocar provedor de IA")
         print(" " + _ui.CYAN + "13" + _ui.RESET + " — Desativar IA (apaga chave e config)")
         print(" " + _ui.CYAN + "0 " + _ui.RESET + "— Voltar")
-=======
-        print(f"\n Provedor: {PROVIDER_LABELS[provider]}  ({status})")
-        print(" [1] Abrir o assistente numa pasta de APK (interativo)")
-        print(" [2] Resumir o app")
-        print(" [3] Cruzar relatórios do ReaDroid com o código")
-        print(" [4] Editar com a IA e reconstruir (corrige erros em ciclo)")
-        print(" [5] Recriar um trecho do app do zero (automático, ciclo completo)")
-        print(" [6] Explicar um erro de reconstrução")
-        print(" [7] Pergunta livre sobre o APK")
-        print(" [8] Testar / diagnosticar")
-        print(" [R] Prompts prontos (VIP, anúncios, tradução, diagnóstico...)")
-        print(" [D] Editar com revisão do diff antes de aplicar")
-        print(" [B] Backup da pasta decodificada (criar/restaurar)")
-        print(" [9] Trocar modelo")
-        print(" [L] Ajustar limite de passos do agente (atual: " + str(load_agent_max_steps()) + ")")
-        print(" [10] Configurar provedor/chave (OpenRouter ou gateway)")
-        print(" [P] Trocar provedor de IA (OpenRouter, Codex ou gateway)")
-        print(" [11] Desativar IA (apaga chave e config)")
-        print(" [0] Voltar")
->>>>>>> parent of 8704012 (upddate desing)
         choice = ui.safe_input("IA > ").strip()
         if choice in ("", "0"):
             return

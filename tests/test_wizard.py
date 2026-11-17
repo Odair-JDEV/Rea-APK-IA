@@ -264,8 +264,8 @@ class AppMenuNewOptionsTests(unittest.TestCase):
 
     def test_menu_tem_18_e_19(self):
         items = self.app._menu_items()
-        self.assertIn("18:Atualizar", items)
-        self.assertIn("19:Destino APK", items)
+        self.assertIn("18 — Atualizar", items)
+        self.assertIn("19 — Destino APK", items)
 
     def test_opcao_18_recusa_aplicar_sem_confirmacao(self):
         from readroid import updater

@@ -49,15 +49,12 @@ REPORTS = BASE / "reports"
 OUTPUTS = BASE / "output"
 BUILDS = BASE / "builds"
 KEYSTORE = BASE / ".readroid-keystore.jks"
-<<<<<<< HEAD
+
 from . import ui as _ui
 
 # Aliases de cor mantidos para todo o codigo existente (agora com a paleta Cyber oficial).
 GREEN, CYAN, YELLOW, RED, DIM, RESET, BOLD = _ui.GREEN, _ui.CYAN, _ui.YELLOW, _ui.RED, _ui.DIM, _ui.RESET, _ui.BOLD
 GOLD = _ui.YELLOW
-=======
-GREEN, CYAN, YELLOW, RED, DIM, RESET, BOLD = "\033[92m", "\033[96m", "\033[93m", "\033[91m", "\033[2m", "\033[0m", "\033[1m"
->>>>>>> parent of 8704012 (upddate desing)
 
 # Remove sequências de escape ANSI e caracteres de controle antes de imprimir qualquer
 # dado que veio de dentro de um APK (strings, nomes de arquivo, saída de ferramentas).
@@ -77,13 +74,62 @@ def width() -> int:
     return max(32, min(shutil.get_terminal_size((44, 24)).columns, 78))
 
 
+# Largura visual de uma linha: ignora sequências ANSI (cores) e conta o resto
+# por célula de terminal (wcwidth), para o layout não vazar em telas estreitas.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]|\x1b\][^\x07]*\x07")
+
+
+def vwidth(line: str) -> int:
+    return wcswidth(_ANSI_RE.sub("", str(line)))
+
+
+def detect_platform() -> str:
+    if sys.platform.startswith("win"):
+        return "Windows"
+    if sys.platform == "darwin":
+        return "macOS"
+    if os.path.isdir("/data/data/com.termux"):
+        return "Termux"
+    if sys.platform.startswith("linux"):
+        return "Linux"
+    return sys.platform
+
+
+_NETWORK_CACHE: tuple[float, bool] = (0.0, False)
+
+
+def network_state() -> str:
+    """Estado da rede com cache de 60s: 'Online' ou 'Offline'."""
+    global _NETWORK_CACHE
+    import time
+    import urllib.request
+    now = time.monotonic()
+    cached_at, cached_state = _NETWORK_CACHE
+    if now - cached_at < 60:
+        return "Online" if cached_state else "Offline"
+    state = False
+    try:
+        urllib.request.urlopen("https://github.com", timeout=3).close()
+        state = True
+    except OSError:
+        state = False
+    _NETWORK_CACHE = (now, state)
+    return "Online" if state else "Offline"
+
+
+def tools_state() -> str:
+    return "OK" if shutil.which("apktool") else "--"
+
+
 def banner() -> None:
     clear()
     cols = width()
-    for line in render_banner(cols, (GREEN, CYAN, RESET)):
+    for line in render_banner(cols, (GOLD, CYAN, RESET)):
         print(line)
-    print(BOLD + f"v{__version__}" + RESET + CYAN + " · " + tr("IA opcional · Sem root · Offline por padrão") + RESET)
-    print(DIM + "OffensiveTec  |  " + LANGUAGES.get(get_language(), "Português") + RESET)
+    print(_ui.header_line(__version__, detect_platform(),
+                          "OK" if ai_available() else "--", tools_state()))
+    print(DIM + tr("IA opcional · Sem root · Offline por padrão")
+          + " · " + network_state() + RESET)
 
 
 _PASTE_RE = re.compile(r"\x1b\[[0-9;?]*[~a-zA-Z]|\[20[01]~|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
@@ -823,8 +869,20 @@ def rtl(s):
 
 
 def fit(text, size):
+    # Sequências ANSI (cores) não ocupam células: são repassadas intactas e
+    # ignoradas na medição, senão itens coloridos são truncados e o painel vaza.
     out, used = [], 0
+    esc = False
     for ch in str(text):
+        if esc:
+            out.append(ch)
+            if ch.isalpha():
+                esc = False
+            continue
+        if ch == "\x1b":
+            out.append(ch)
+            esc = True
+            continue
         w = max(0, wcwidth(ch))
         if used + w > size:
             break
@@ -833,7 +891,9 @@ def fit(text, size):
     t = "".join(out)
     if has_rtl(t):
         t = rtl(t)
-    return t + " " * max(0, size - max(0, wcswidth(t)))
+    # Mede o texto sem ANSI: wcswidth devolve -1 para escapes de controle.
+    visible = max(0, wcswidth(_ANSI_RE.sub("", t)))
+    return t + " " * max(0, size - visible)
 
 
 def _panel(title: str, items: list[str], panel_width: int,
@@ -869,46 +929,64 @@ def _system_items() -> list[str]:
     ]
     items = [
         f"Ver: {__version__}",
-        "Android",
+        detect_platform(),
         "Sem root",
-        "Offline",
+        network_state(),
         "",
     ]
-    items.extend(f"{n}:{'OK' if ok else '--'}" for n, ok in checks)
-    items.append(f"IA:{'OK' if ai_available() else '--'}")
+    items.extend(f"{n}: {_ui.status(ok, '[OK]', '[OFF]')}" for n, ok in checks)
+    items.append(f"IA: {_ui.status(ai_available(), '[OK]', '[OFF]')}")
+    online = network_state() == "Online"
+    items.append(f"Rede: {_ui.status(online, 'Online', 'Offline')}")
     return items
 
 
+# Grupos do menu Cyber: seções em caixa alta, opções embaixo de cada uma.
+_MENU_SECTIONS: list[tuple[str, tuple[str, ...]]] = [
+    ("ANÁLISE APK", ("1", "2", "3")),
+    ("ENGENHARIA REVERSA", ("4", "5")),
+    ("SEGURANÇA E BUILD", ("10", "11", "12")),
+    ("RELATÓRIOS", ("6", "7", "8", "9", "16", "17")),
+    ("INTELIGÊNCIA ARTIFICIAL", ("13", "15")),
+    ("CONFIGURAÇÕES", ("14", "18", "19", "0")),
+]
+
+_MENU_LABELS = {
+    "1": "Inspec. APK",
+    "2": "Manifesto",
+    "3": "URLs/IPs",
+    "4": "Decompilar",
+    "5": "Extrair smali",
+    "6": "Dependencias",
+    "7": "Relatorios",
+    "8": "Resultados",
+    "9": "Ver arquivos",
+    "10": "Edicoes",
+    "11": "Assinar APK",
+    "12": "Chave APK",
+    "13": "Assistente",
+    "14": "Idioma",
+    "15": "IA",
+    "16": "Historico",
+    "17": "Resumo",
+    "18": "Atualizar",
+    "19": "Destino APK",
+    "0": "Sair",
+}
+
+
 def _menu_items(compact: bool = False) -> list[str]:
-    labels = {
-        "1": "Inspec. APK",
-        "2": "Manifesto",
-        "3": "URLs/IPs",
-        "4": "Decompilar",
-        "5": "Extrair smali",
-        "6": "Dependencias",
-        "7": "Relatorios",
-        "8": "Resultados",
-        "9": "Ver arquivos",
-        "10": "Edicoes",
-        "11": "Assinar APK",
-        "12": "Chave APK",
-        "13": "Assistente",
-        "14": "Idioma",
-        "15": "IA",
-        "16": "Historico",
-        "17": "Resumo",
-        "18": "Atualizar",
-        "19": "Destino APK",
-        "0": "Sair",
-    }
-    keys = [key for key, _ in MENU if key not in ("13", "14", "15", "16", "17", "18", "19")]
-    keys.extend(["13", "14"])
-    if ai_available():
-        keys.append("15")
-    keys.extend(["16", "17", "18", "19"])
-    keys.append("0")
-    return [f"{key}:{tr(labels[key])}" for key in keys]
+    items: list[str] = []
+    for section, keys in _MENU_SECTIONS:
+        items.append(section)
+        for key in keys:
+            if key == "15" and not ai_available():
+                continue
+            if key == "0":
+                items.append(f"0 — {tr(_MENU_LABELS[key])}")
+            else:
+                items.append(f"{key} — {tr(_MENU_LABELS[key])}")
+    return items
 
 
 _BORDERLESS = False

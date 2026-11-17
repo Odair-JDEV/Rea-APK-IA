@@ -32,11 +32,12 @@ def _git(repo: Path, *args: str) -> tuple[int, str]:
 
 def check_update(repo: Path) -> dict[str, Any]:
     """Consulta o remoto sem alterar nada. `ok` diz se a checagem funcionou."""
-    if not (repo / ".git").exists():
-        return {"ok": False, "message": "Esta cópia não é um repositório Git; baixe o projeto novamente."}
+    # rev-parse sobe na árvore como o git faz: funciona mesmo quando o
+    # ReaDroid roda numa subpasta do clone (ex.: <repo>/Rea-APK-IA), onde
+    # o .git fica no diretório de cima e um check de ".git" local falharia.
     code, _ = _git(repo, "rev-parse", "--is-inside-work-tree")
     if code != 0:
-        return {"ok": False, "message": "Não foi possível consultar o Git nesta pasta."}
+        return {"ok": False, "message": "Esta cópia não é um repositório Git; baixe o projeto novamente."}
     code, remote = _git(repo, "remote", "get-url", "origin")
     if code != 0 or not remote:
         return {"ok": False, "message": "Nenhum remote 'origin' configurado."}

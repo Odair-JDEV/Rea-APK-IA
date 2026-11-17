@@ -1,6 +1,5 @@
 # Changelog
 
-<<<<<<< HEAD
 ## 0.6.0 - 2026-11-17
 - **Agent session resume:** when the internal gateway agent hits its step limit without finishing,
   the full conversation is saved inside the decoded folder (`.readroid_sessions/`, capped at 10
@@ -38,8 +37,6 @@
 - New `tests/test_ui.py` covering palette, symbols, banner identity, adaptive layout width
   guarantees, grouped menu and AI menu completeness.
 
-=======
->>>>>>> parent of 8704012 (upddate desing)
 ## 0.1.0 - 2026-10-16
 - Initial public release designed for non-root Termux.
 - Interactive menu featuring a subtle OffensiveTec watermark.

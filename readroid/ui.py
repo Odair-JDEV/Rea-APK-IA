@@ -33,11 +33,18 @@ ERROR = "[ERROR]"
 
 
 def status(ok: bool | None, label_ok: str | None = None, label_off: str | None = None) -> str:
-    """Símbolo de estado colorido para uma checagem."""
+    """Símbolo de estado colorido para uma checagem.
+
+    `True` fica verde (ou label_ok), `False` vermelho (ou label_off) e
+    `None` (desconhecido) usa label_off em amarelo quando informado —
+    assim "Rede: Offline" aparece como estado, não como erro.
+    """
     if ok is True:
         return GREEN + (label_ok or OK) + RESET
+    if label_off:
+        return (RED if ok is False else YELLOW) + label_off + RESET
     if ok is False:
-        return RED + (label_off or ERROR) + RESET
+        return RED + ERROR + RESET
     return YELLOW + WARN + RESET
 
 
