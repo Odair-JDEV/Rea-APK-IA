@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+reports/
+output/
+builds/
+.readroid-keystore.jks
+*.apk
+*.jks
+.venv/
+*.bak-*
+__pycache__/

@@ -1,0 +1,19 @@
+# Lint do ReaDroid: alvo Termux Python 3.10+; núcleo usa só a biblioteca padrão.
+target-version = "py310"
+line-length = 120
+
+[lint]
+# E/F = pycodestyle/pyflakes, W = warnings, I = imports, UP = modernização,
+# B = bugbear, SIM = simplificação, RUF = regras da casa do ruff.
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+  "E501",   # linha longa aparece em prompts e strings de menu
+  "E402",   # app.py e testes inserem o ROOT no sys.path antes de importar readroid
+  "E702",   # axml.py usa ponto e vírgula em linhas de parser compactas (legado mantido)
+  "SIM105", # try/except/pass explícito fica claro sem contextlib.suppress
+  "UP031",  # %s em structs do axml/testes é legível e correto
+  "RUF001", # strings com › e texto árabe/hindi são conteúdo de interface, não typos
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["SIM117", "B023"]  # lambda de loop nos testes é proposital  # with aninhados nos testes são legíveis de propósito
